@@ -1,0 +1,50 @@
+#!/usr/bin/env node
+
+var config = require('../lib/config');
+var moment = require('moment');
+if (!config.API_TOKEN) {
+	return ;
+}
+var Toggle = require('../');
+var toggle = new Toggle(config.API_TOKEN);
+var colors = require('colors');
+var args = process.argv.splice(2);
+var command = args[0];
+
+if (!command) {
+	command = 'start';
+}
+
+if (command == 'stop') {
+	toggle.stop().then(function(entry) {
+		var desc = entry.description ? entry.description.cyan.bold : '(no description)'.yellow;
+		console.log(['entry', desc, 'successfully', 'stoped'.red.bold].join(' '));
+		var start = moment(entry.start);
+		var stop = moment(entry.stop);
+		console.log(['time:', start.from(stop, true)].join(' '));
+	}).catch(function(error) {
+		console.log(error.message.red);
+	});
+	return ;
+}
+
+var name = [];
+if ( command && command != 'start' ) {
+	name = [command];
+	command = 'start';
+}
+
+var i = 1;
+
+while ( args[i] ) {
+	name.push(args[i++]);
+}
+
+name = name.length === 0 ? undefined : name.join(' ');
+
+if ( command == 'start' ) {
+	toggle.start(name).then(function() {
+		name = name ? name.cyan.bold : '(no description)'.yellow.bold;
+		console.log(['entry', name, 'successfully', 'started'.green].join(' '));
+	});
+}

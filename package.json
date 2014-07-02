@@ -1,0 +1,26 @@
+{
+  "name": "toggl",
+  "version": "0.0.1",
+  "description": "Toggl command line utility",
+  "main": "index.js",
+  "bin": {
+    "toggl": "./bin/toggl"
+  },
+  "scripts": {
+    "test": "npm test"
+  },
+  "keywords": [
+    "toggl",
+    "time",
+    "tracking"
+  ],
+  "author": "Goran Gajić",
+  "license": "MIT",
+  "dependencies": {
+    "ask-for": "0.0.3",
+    "bluebird": "^2.1.3",
+    "colors": "^0.6.2",
+    "moment": "^2.7.0",
+    "request": "^2.36.0"
+  }
+}
