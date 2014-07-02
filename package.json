@@ -1,6 +1,6 @@
 {
   "name": "toggl",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Toggl command line utility",
   "main": "index.js",
   "bin": {
