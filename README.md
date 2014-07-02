@@ -1,6 +1,8 @@
 
 Tracking time without leaving command line using https://www.toggl.com/
+
 to start tracking time you will need Api token that you can grab from your toggl [profile page](https://www.toggl.com/app/profile)
+
 On the first run program will ask you for the Api token
 
 Install
