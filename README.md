@@ -1,32 +1,35 @@
 
-Tracking time without leaving command line using https://www.toggl.com/
+Tracking time without leaving command line using [Toggl](https://www.toggl.com/).
 
-to start tracking time you will need Api token that you can grab from your toggl [profile page](https://www.toggl.com/app/profile)
+To start tracking time, you will need the API token that you can grab from your toggl [profile page](https://www.toggl.com/app/profile).
 
-On the first run program will ask you for the Api token
+On the first run, the program will ask you for the API token.
 
-Install
+### Install
 
-```
-npm install toggl -g
-```
-
-Start a new time entry type
-
-```
-toggl start working on issue 34
+```console
+$ npm install toggl -g
 ```
 
-```start``` is optional so you can just type
+### Usage
 
+#### Start a new task
+
+```console
+$ toggl start working on issue 34
 ```
-toggl working on issue 34
+
+or
+
+```console
+$ toggl working on issue 34
 ```
 
+(```start``` is optional)
 
-to stop entry type a
+#### Stop a task
 
-```
-toggl stop
+```console
+$ toggl stop
 ```
 
