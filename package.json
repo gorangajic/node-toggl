@@ -3,6 +3,10 @@
   "version": "0.0.5",
   "description": "Toggl command line utility",
   "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gorangajic/node-toggl.git"
+  },
   "bin": {
     "toggl": "./bin/toggl"
   },
