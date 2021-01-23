@@ -1,50 +1,92 @@
 #!/usr/bin/env node
 
-var config = require('../lib/config');
-var moment = require('moment');
+const config = require('../lib/config');
+const moment = require('moment');
+const inquirer = require('inquirer');
+const fuzzy = require('fuzzy');
+inquirer.registerPrompt('autocomplete', require('inquirer-autocomplete-prompt'));
+
 if (!config.API_TOKEN) {
-	return ;
+	return;
 }
-var Toggle = require('../');
-var toggle = new Toggle(config.API_TOKEN);
-var colors = require('colors');
-var args = process.argv.splice(2);
-var command = args[0];
+const Toggle = require('../');
+const toggle = new Toggle(config.API_TOKEN);
+const colors = require('colors');
+const args = process.argv.splice(2);
+async function main() {
+	let command = args[0];
 
-if (!command) {
-	command = 'start';
-}
+	if (!command) {
+		command = 'start';
+	}
+	if (command == 'stop') {
+		toggle.stop().then(function (entry) {
+			const desc = entry.description ? entry.description.cyan.bold : '(no description)'.yellow;
+			console.log(['entry', desc, 'successfully', 'stoped'.red.bold].join(' '));
+			const start = moment(entry.start);
+			const stop = moment(entry.stop);
+			console.log(['time:', start.from(stop, true)].join(' '));
+		}).catch(function (error) {
+			console.log(error.message.red);
+		});
+		return;
+	}
 
-if (command == 'stop') {
-	toggle.stop().then(function(entry) {
-		var desc = entry.description ? entry.description.cyan.bold : '(no description)'.yellow;
-		console.log(['entry', desc, 'successfully', 'stoped'.red.bold].join(' '));
-		var start = moment(entry.start);
-		var stop = moment(entry.stop);
-		console.log(['time:', start.from(stop, true)].join(' '));
-	}).catch(function(error) {
-		console.log(error.message.red);
-	});
-	return ;
-}
+	let name = [];
+	if (command && command != 'start') {
+		name = [command];
+		command = 'start';
+	}
 
-var name = [];
-if ( command && command != 'start' ) {
-	name = [command];
-	command = 'start';
-}
+	let i = 1;
 
-var i = 1;
+	while (args[i]) {
+		name.push(args[i++]);
+	}
 
-while ( args[i] ) {
-	name.push(args[i++]);
-}
+	name = name.length === 0 ? undefined : name.join(' ');
 
-name = name.length === 0 ? undefined : name.join(' ');
-
-if ( command == 'start' ) {
-	toggle.start(name).then(function() {
+	if (command == 'start') {
+		const targetProject = await getProjectForEntry();
+		await toggle.start(name, targetProject.id)
 		name = name ? name.cyan.bold : '(no description)'.yellow.bold;
 		console.log(['entry', name, 'successfully', 'started'.green].join(' '));
-	});
+	}
 }
+
+async function getProjectForEntry() {
+	const projects = await toggle.getProjects();
+	const choices = projects.map((p) => {
+		return p.name
+	});
+	//console.log(projects);
+	const answers = await inquirer.prompt([
+		{
+			type: 'autocomplete',
+			name: 'project',
+			suggestOnly: true,
+			message: 'Please choose a project',
+			emptyText: 'Nothing found!',
+			source: async (answers, input) => {
+				input = input || '';
+				const fuzzyResult = fuzzy.filter(input, choices)
+				return fuzzyResult.map(el => el.original)
+			},
+			pageSize: 10,
+			validate: function (val) {
+				return val ? true : 'Type something!';
+			},
+		}
+	])
+	const selectedProject = answers.project;
+	if (choices.includes(selectedProject)) {
+		return projects.find((p) => {
+			return p.name === selectedProject
+		})
+	} else {
+		const res = await toggle.createProject(selectedProject);
+		return res;
+	}
+	return;
+}
+main();
