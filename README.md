@@ -27,6 +27,9 @@ $ toggl working on issue 34
 
 (```start``` is optional)
 
+Every task should be assigned to a project, select one of the project listed with the arrow keys and the *TAB* entry.
+Insert a new string to create a new project in default workspace.
+
 #### Stop a task
 
 ```console
