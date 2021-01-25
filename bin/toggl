@@ -28,14 +28,26 @@ async function main() {
 				console.log(`- ${data.name} (${data.id})`)
 			})
 			break;
+		case 'status':
+			const entry = await toggle.getEntry();
+			if (entry) {
+				const duration = getDuration(entry.start, entry.stop);
+				console.log(`${entry.description.cyan.bold} in progress for ${duration}`.green)
+			} else {
+				console.log(`No entry in progess`.red);
+			}
+			break;
 		case 'stop':
 			try {
 				const entry = await toggle.stop();
+				if (!entry) {
+					console.log(`No entry in progess`.red);
+					return;
+				}
 				const desc = entry.description ? entry.description.cyan.bold : '(no description)'.yellow;
 				console.log(['entry', desc, 'successfully', 'stopped'.red.bold].join(' '));
-				const start = moment(entry.start);
-				const stop = moment(entry.stop);
-				console.log(['time:', start.from(stop, true)].join(' '));
+				const duration = getDuration(entry.start, entry.stop);
+				console.log(`time: ${duration}`);
 			} catch (err) {
 				console.log(error.message.red);
 			} finally {
@@ -111,5 +123,9 @@ async function getProjectForEntry() {
 function parseTags(tagString) {
 	const s = new Set(tagString.split(',').map(t => t.trim()))
 	return [...s]
+}
+
+function getDuration(start, stop) {
+	return moment(start).from(moment(stop), true);
 }
 main();
