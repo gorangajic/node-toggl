@@ -6,6 +6,9 @@ const inquirer = require('inquirer');
 const fuzzy = require('fuzzy');
 inquirer.registerPrompt('autocomplete', require('inquirer-autocomplete-prompt'));
 
+// Handle command line options 
+const minimist = require('minimist')
+const argv = minimist(process.argv)
 if (!config.API_TOKEN) {
 	return;
 }
@@ -15,43 +18,51 @@ const colors = require('colors');
 const args = process.argv.splice(2);
 async function main() {
 	let command = args[0];
-
 	if (!command) {
 		command = 'start';
 	}
-	if (command == 'stop') {
-		toggle.stop().then(function (entry) {
-			const desc = entry.description ? entry.description.cyan.bold : '(no description)'.yellow;
-			console.log(['entry', desc, 'successfully', 'stoped'.red.bold].join(' '));
-			const start = moment(entry.start);
-			const stop = moment(entry.stop);
-			console.log(['time:', start.from(stop, true)].join(' '));
-		}).catch(function (error) {
-			console.log(error.message.red);
-		});
-		return;
+	switch (command) {
+		case 'list-tags':
+			const data = await toggle.getTags();
+			data.forEach((data) => {
+				console.log(`- ${data.name} (${data.id})`)
+			})
+			break;
+		case 'stop':
+			try {
+				const entry = await toggle.stop();
+				const desc = entry.description ? entry.description.cyan.bold : '(no description)'.yellow;
+				console.log(['entry', desc, 'successfully', 'stopped'.red.bold].join(' '));
+				const start = moment(entry.start);
+				const stop = moment(entry.stop);
+				console.log(['time:', start.from(stop, true)].join(' '));
+			} catch (err) {
+				console.log(error.message.red);
+			} finally {
+				break;
+			}
+		case 'start':
+		default:
+			let name = [];
+			if (command && command != 'start') {
+				name = [command];
+				command = 'start';
+			}
+			let i = 1;
+
+			while (args[i]) {
+				name.push(args[i++]);
+			}
+
+			name = name.length === 0 ? undefined : name.join(' ');
+			const targetProject = await getProjectForEntry();
+			await toggle.start(name, targetProject.id)
+			name = name ? name.cyan.bold : '(no description)'.yellow.bold;
+			name = `( Project ${targetProject.name})`
+			console.log(['entry', name, 'successfully', 'started'.green].join(' '));
+			break;
 	}
 
-	let name = [];
-	if (command && command != 'start') {
-		name = [command];
-		command = 'start';
-	}
-
-	let i = 1;
-
-	while (args[i]) {
-		name.push(args[i++]);
-	}
-
-	name = name.length === 0 ? undefined : name.join(' ');
-
-	if (command == 'start') {
-		const targetProject = await getProjectForEntry();
-		await toggle.start(name, targetProject.id)
-		name = name ? name.cyan.bold : '(no description)'.yellow.bold;
-		console.log(['entry', name, 'successfully', 'started'.green].join(' '));
-	}
 }
 
 async function getProjectForEntry() {
