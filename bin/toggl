@@ -8,7 +8,7 @@ inquirer.registerPrompt('autocomplete', require('inquirer-autocomplete-prompt'))
 
 // Handle command line options 
 const minimist = require('minimist')
-const argv = minimist(process.argv)
+const argv = minimist(process.argv.slice(2))
 if (!config.API_TOKEN) {
 	return;
 }
@@ -17,7 +17,7 @@ const toggle = new Toggle(config.API_TOKEN);
 const colors = require('colors');
 const args = process.argv.splice(2);
 async function main() {
-	let command = args[0];
+	let command = argv._[0];
 	if (!command) {
 		command = 'start';
 	}
@@ -47,19 +47,26 @@ async function main() {
 			if (command && command != 'start') {
 				name = [command];
 				command = 'start';
+			} else {
+				argv._.shift();
 			}
-			let i = 1;
+			name = argv._.join(' ')
+			let consoleName = name ? name.cyan.bold : '(no description)'.yellow.bold;
 
-			while (args[i]) {
-				name.push(args[i++]);
+			// Handle time entry options
+			const startOptions = {}
+			if (argv.t) {
+				startOptions.tags = parseTags(argv.t);
+
 			}
+			if (!argv.t || argv.p) {
+				const targetProject = await getProjectForEntry();
+				consoleName += ` (Project ${targetProject.name})`.yellow
+				startOptions.pid = targetProject.id
+			}
+			await toggle.start(name, startOptions)
 
-			name = name.length === 0 ? undefined : name.join(' ');
-			const targetProject = await getProjectForEntry();
-			await toggle.start(name, targetProject.id)
-			name = name ? name.cyan.bold : '(no description)'.yellow.bold;
-			name = `( Project ${targetProject.name})`
-			console.log(['entry', name, 'successfully', 'started'.green].join(' '));
+			console.log(['entry', consoleName, 'successfully', 'started'.green].join(' '));
 			break;
 	}
 
@@ -99,5 +106,10 @@ async function getProjectForEntry() {
 		return res;
 	}
 	return;
+}
+
+function parseTags(tagString) {
+	const s = new Set(tagString.split(',').map(t => t.trim()))
+	return [...s]
 }
 main();
