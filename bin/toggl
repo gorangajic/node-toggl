@@ -4,6 +4,8 @@ const config = require('../lib/config');
 const moment = require('moment');
 const inquirer = require('inquirer');
 const fuzzy = require('fuzzy');
+const printHelp = require('../lib/commands/help')
+
 inquirer.registerPrompt('autocomplete', require('inquirer-autocomplete-prompt'));
 
 // Handle command line options 
@@ -15,13 +17,21 @@ if (!config.API_TOKEN) {
 const Toggle = require('../');
 const toggle = new Toggle(config.API_TOKEN);
 const colors = require('colors');
-const args = process.argv.splice(2);
 async function main() {
 	let command = argv._[0];
-	if (!command) {
-		command = 'start';
+	if (argv.h || argv.help) {
+		command = 'help'
+	} else {
+
+		if (!command) {
+			command = 'start';
+		}
 	}
+
 	switch (command) {
+		case 'help':
+			printHelp();
+			break;
 		case 'list-tags':
 			const data = await toggle.getTags();
 			data.forEach((data) => {
