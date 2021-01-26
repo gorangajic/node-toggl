@@ -4,54 +4,94 @@ const config = require('../lib/config');
 const moment = require('moment');
 const inquirer = require('inquirer');
 const fuzzy = require('fuzzy');
+const printHelp = require('../lib/commands/help')
+
 inquirer.registerPrompt('autocomplete', require('inquirer-autocomplete-prompt'));
 
+// Handle command line options 
+const minimist = require('minimist')
+const argv = minimist(process.argv.slice(2))
 if (!config.API_TOKEN) {
 	return;
 }
 const Toggle = require('../');
 const toggle = new Toggle(config.API_TOKEN);
 const colors = require('colors');
-const args = process.argv.splice(2);
 async function main() {
-	let command = args[0];
+	let command = argv._[0];
+	if (argv.h || argv.help) {
+		command = 'help'
+	} else {
 
-	if (!command) {
-		command = 'start';
-	}
-	if (command == 'stop') {
-		toggle.stop().then(function (entry) {
-			const desc = entry.description ? entry.description.cyan.bold : '(no description)'.yellow;
-			console.log(['entry', desc, 'successfully', 'stoped'.red.bold].join(' '));
-			const start = moment(entry.start);
-			const stop = moment(entry.stop);
-			console.log(['time:', start.from(stop, true)].join(' '));
-		}).catch(function (error) {
-			console.log(error.message.red);
-		});
-		return;
+		if (!command) {
+			command = 'start';
+		}
 	}
 
-	let name = [];
-	if (command && command != 'start') {
-		name = [command];
-		command = 'start';
+	switch (command) {
+		case 'help':
+			printHelp();
+			break;
+		case 'list-tags':
+			const data = await toggle.getTags();
+			data.forEach((data) => {
+				console.log(`- ${data.name} (${data.id})`)
+			})
+			break;
+		case 'status':
+			const entry = await toggle.getEntry();
+			if (entry) {
+				const duration = getDuration(entry.start, entry.stop);
+				console.log(`${entry.description.cyan.bold} in progress for ${duration}`.green)
+			} else {
+				console.log(`No entry in progess`.red);
+			}
+			break;
+		case 'stop':
+			try {
+				const entry = await toggle.stop();
+				if (!entry) {
+					console.log(`No entry in progess`.red);
+					return;
+				}
+				const desc = entry.description ? entry.description.cyan.bold : '(no description)'.yellow;
+				console.log(['entry', desc, 'successfully', 'stopped'.red.bold].join(' '));
+				const duration = getDuration(entry.start, entry.stop);
+				console.log(`time: ${duration}`);
+			} catch (err) {
+				console.log(error.message.red);
+			} finally {
+				break;
+			}
+		case 'start':
+		default:
+			let name = [];
+			if (command && command != 'start') {
+				name = [command];
+				command = 'start';
+			} else {
+				argv._.shift();
+			}
+			name = argv._.join(' ')
+			let consoleName = name ? name.cyan.bold : '(no description)'.yellow.bold;
+
+			// Handle time entry options
+			const startOptions = {}
+			if (argv.t) {
+				startOptions.tags = parseTags(argv.t);
+
+			}
+			if (!argv.t || argv.p) {
+				const targetProject = await getProjectForEntry();
+				consoleName += ` (Project ${targetProject.name})`.yellow
+				startOptions.pid = targetProject.id
+			}
+			await toggle.start(name, startOptions)
+
+			console.log(['entry', consoleName, 'successfully', 'started'.green].join(' '));
+			break;
 	}
 
-	let i = 1;
-
-	while (args[i]) {
-		name.push(args[i++]);
-	}
-
-	name = name.length === 0 ? undefined : name.join(' ');
-
-	if (command == 'start') {
-		const targetProject = await getProjectForEntry();
-		await toggle.start(name, targetProject.id)
-		name = name ? name.cyan.bold : '(no description)'.yellow.bold;
-		console.log(['entry', name, 'successfully', 'started'.green].join(' '));
-	}
 }
 
 async function getProjectForEntry() {
@@ -88,5 +128,14 @@ async function getProjectForEntry() {
 		return res;
 	}
 	return;
+}
+
+function parseTags(tagString) {
+	const s = new Set(tagString.split(',').map(t => t.trim()))
+	return [...s]
+}
+
+function getDuration(start, stop) {
+	return moment(start).from(moment(stop), true);
 }
 main();
